@@ -1,101 +1,93 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Softmax Visualiser</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <style>
-    body, html { margin:0; padding:0; width:100%; font-family:system-ui, sans-serif; }
-    .wrapper     { max-width:100%; padding:16px; }
-    #chart-wrap   { width:100%; height:450px; }
-    #slider-wrap  { margin:12px 0; }
-    input[type=range] { width:100%; }
-    .label        { font-weight:600; }
-  </style>
-</head>
-<body>
-  <div class="wrapper">
-    <h2>Softmax of [ 1 , <span id="zero-count">3</span>×0 ]</h2>
+<!-- softmax-calculator.html -->
+<meta charset="utf-8" />
+<title>Soft‑max Visualiser</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  body{margin:0;padding:0;width:100%;font:14px system-ui,sans-serif}
+  .wrapper{max-width:100%;padding:16px}
+  #chart{width:100%;height:450px}
+  #slider{margin:12px 0;width:100%}
+  .label{font-weight:600}
+</style>
 
-    <div id="slider-wrap">
-      <label class="label">Number&nbsp;of&nbsp;zeros:&nbsp;<span id="zeros">3</span></label>
-      <input type="range" id="numZeros" min="0" max="50" value="3" />
-    </div>
+<div class="wrapper">
+  <h2>Soft‑max of [ 1 , <span id="zcount">3</span>×0 ]</h2>
 
-    <div id="chart-wrap">
-      <canvas id="softmaxChart"></canvas>
-    </div>
-  </div>
+  <label class="label">Number of zeros: <span id="zeros">3</span></label>
+  <input type="range" id="slider" min="0" max="50" value="3"/>
+
+  <canvas id="chart"></canvas>
+</div>
 
 <script>
-function softmax(arr) {
-  const exps = arr.map(v => Math.exp(v));
-  const sum  = exps.reduce((a,b) => a + b, 0);
-  return exps.map(v => v / sum);
-}
+// ---------- soft‑max ----------
+const softmax = a => {
+  const e = a.map(Math.exp), s = e.reduce((x,y)=>x+y,0);
+  return e.map(v=>v/s);
+};
 
-const ctx   = document.getElementById('softmaxChart');
-let  chart  = null;
+// ---------- draw --------------
+const ctx = document.getElementById('chart');
+let chart;
 
-function drawChart(numZeros) {
-  const logits = [1, ...Array(numZeros).fill(0)];
+function render(n){
+  const logits = [1, ...Array(n).fill(0)];
   const probs  = softmax(logits);
-  const data   = {
-    datasets: [{
-      label: 'Softmax probability',
-      data: probs,
-      borderWidth: 1
-    }]
+
+  const commonOpts = {
+    borderWidth:1,
+    data:probs,
+    pointRadius:0,
+    order:1            // keep in front of bars
   };
 
-  if (chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type: 'bar',
-    data: data,
-    options: {
-      responsive: true,
-      animation: false,
-      scales: {
-        x: {
-          ticks: {
-            display: false  // Hide x-axis labels
-          },
-          grid: {
-            display: false  // Hide vertical grid lines
-          }
+  const data = {
+    labels: probs.map((_,i)=>`idx ${i}`),
+    datasets:[
+      { type:'bar',
+        backgroundColor:'#3182ce66',   // translucent blue
+        ...commonOpts, order:2          // draw bars first
+      },
+      { type:'line',
+        borderColor:'rgba(0,0,0,0.35)', // faint grey curve
+        fill:false, tension:0.35,
+        ...commonOpts
+      }
+    ]
+  };
+
+  chart?.destroy();
+  chart = new Chart(ctx,{
+    data,
+    options:{
+      responsive:true,
+      animation:false,
+      scales:{
+        x:{
+          ticks:{ display:false },      // remove x‑axis labels
+          grid:{ display:false }
         },
-        y: { 
-          beginAtZero: true, 
-          max: 1,
-          grid: {
-            display: true  // Keep horizontal grid lines
-          }
+        y:{
+          min:0, max:1,                 // freeze y‑axis
+          ticks:{ stepSize:0.2 },
+          grid:{ color:'rgba(0,0,0,0.05)' }
         }
       },
-      plugins: { 
-        legend: { display:false },
-        tooltip: {
-          callbacks: {
-            title: (items) => `Index ${items[0].dataIndex}`
-          }
-        }
-      }
+      plugins:{ legend:{ display:false } }
     }
   });
 }
 
-const slider  = document.getElementById('numZeros');
-const zerosEl = document.getElementById('zeros');
-const countEl = document.getElementById('zero-count');
+// ---------- slider ------------
+const slider = document.getElementById('slider');
+const zeros  = document.getElementById('zeros');
+const zcount = document.getElementById('zcount');
 
-slider.addEventListener('input', e => {
-  const n = Number(e.target.value);
-  zerosEl.textContent  = n;
-  countEl.textContent  = n;
-  drawChart(n);
+slider.addEventListener('input', e=>{
+  const n = +e.target.value;
+  zeros.textContent = zcount.textContent = n;
+  render(n);
 });
 
-drawChart(Number(slider.value));
+render(+slider.value);     // initialise
 </script>
-</body>
-</html>
