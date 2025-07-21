@@ -1,0 +1,90 @@
+<!-- BEGIN softmax-calculator.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Softmax Visualiser</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    /* Confluence full‑width pages are 100 vw; make the content stretch */
+    body, html { margin:0; padding:0; width:100%; font-family:system-ui, sans-serif; }
+    .wrapper     { max-width:100%; padding:16px; }
+    #chart-wrap   { width:100%; height:450px; }
+    #slider-wrap  { margin:12px 0; }
+    input[type=range] { width:100%; }
+    .label        { font-weight:600; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h2>Softmax of [ 1 , <span id="zero-count">3</span>× 0 ]</h2>
+
+    <div id="slider-wrap">
+      <label class="label">Number&nbsp;of zeros:&nbsp;<span id="zeros">3</span></label>
+      <input type="range" id="numZeros" min="0" max="50" value="3" />
+    </div>
+
+    <div id="chart-wrap">
+      <canvas id="softmaxChart"></canvas>
+    </div>
+  </div>
+
+<script>
+/* ---------- math helpers ---------- */
+function softmax(arr) {
+  const exps = arr.map(v => Math.exp(v));
+  const sum  = exps.reduce((a,b) => a + b, 0);
+  return exps.map(v => v / sum);
+}
+
+/* ---------- chart ---------- */
+const ctx   = document.getElementById('softmaxChart');
+let  chart  = null;
+
+function drawChart(numZeros) {
+  const logits = [1, ...Array(numZeros).fill(0)];
+  const probs  = softmax(logits);
+  const labels = logits.map((v,i)=>`idx ${i}`);
+  const data   = {
+    labels: labels,
+    datasets: [{
+      label: 'Softmax probability',
+      data: probs,
+      borderWidth: 1
+    }]
+  };
+
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: data,
+    options: {
+      responsive: true,
+      animation: false,
+      scales: {
+        y: { beginAtZero: true, max: 1 }
+      },
+      plugins: { legend: { display:false } }
+    }
+  });
+}
+
+/* ---------- slider wiring ---------- */
+const slider  = document.getElementById('numZeros');
+const zerosEl = document.getElementById('zeros');
+const countEl = document.getElementById('zero-count');
+
+slider.addEventListener('input', e => {
+  const n = Number(e.target.value);
+  zerosEl.textContent  = n;
+  countEl.textContent  = n;
+  drawChart(n);
+});
+
+/* init */
+drawChart(Number(slider.value));
+</script>
+</body>
+</html>
+<!-- END softmax-calculator.html -->
+
